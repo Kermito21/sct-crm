@@ -29,3 +29,7 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// Cache-bust 2026-08-04: first Vercel build ran before API_URL existed and its
+// inlined localhost fallback survived through cached rebuilds; config change
+// forces a clean compile.
