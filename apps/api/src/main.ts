@@ -1,3 +1,7 @@
+// Imported for Vercel's NestJS entrypoint detection, which looks for
+// @nestjs/core in the entry file; NestFactory itself lives in create-app.ts.
+import "@nestjs/core";
+
 import { Logger } from "@nestjs/common";
 import { createApp } from "./create-app";
 
