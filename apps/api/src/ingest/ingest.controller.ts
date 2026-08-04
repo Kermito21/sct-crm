@@ -24,6 +24,16 @@ interface IngestLeadBody {
 	sourceUrl?: string;
 }
 
+interface IngestEventBody {
+	email?: string;
+	kind?: string;
+	detail?: string;
+	occurredAt?: string;
+}
+
+/** Fixed author for machine-recorded activities (journal event sync). */
+const SYSTEM_USER_ID = "sct-system-events";
+
 /**
  * Machine lead intake for the SCT funnel (learn.sctsuite.com/api/lead) and the
  * one-off historical import. Deliberately dumb, per docs/api.md: find-or-create
@@ -85,5 +95,65 @@ export class IngestController {
 
 		this.logger.log({ message: "Ingest lead created", contactId: contact.id });
 		return { ok: true, contactId: contact.id, existing: false };
+	}
+
+	/**
+	 * Journal → CRM event sync (SCT dashboard pushes lifecycle signals:
+	 * application approved, app account created, broker connected, …).
+	 * Records a NOTE activity on the contact's timeline, creating the
+	 * contact if the email is new. Same secret and idempotency posture as
+	 * /ingest/lead; the activity author is a fixed system user.
+	 */
+	@Post("event")
+	@HttpCode(200)
+	@AllowAnonymous()
+	async event(
+		@Headers("x-ingest-secret") secret: string | undefined,
+		@Body() body: IngestEventBody,
+	) {
+		const expected = process.env.CRM_INGEST_SECRET ?? "";
+		if (!expected) throw new ServiceUnavailableException("Ingest not configured");
+		if (secret !== expected) throw new UnauthorizedException();
+
+		const email = normalizeEmail(body.email ?? "");
+		const kind = (body.kind ?? "").trim();
+		if (!email || !kind) return { ok: false, error: "email and kind required" };
+
+		let contact = await this.db.contact.findFirst({
+			where: { email: { equals: email, mode: "insensitive" } },
+			select: { id: true },
+		});
+		if (!contact) {
+			contact = await this.db.contact.create({
+				data: { firstName: email.split("@")[0] ?? "Unknown", email },
+				select: { id: true },
+			});
+			await this.agentTrigger.contactCreated(contact.id, `Journal event (${kind})`);
+		}
+
+		await this.db.user.upsert({
+			where: { id: SYSTEM_USER_ID },
+			update: {},
+			create: {
+				id: SYSTEM_USER_ID,
+				name: "SCT Systems",
+				email: "systems@sctsuite.com",
+			},
+		});
+
+		const occurredAt = body.occurredAt ? new Date(body.occurredAt) : new Date();
+		await this.db.activity.create({
+			data: {
+				type: "NOTE",
+				subject: kind,
+				body: blankToNull(body.detail ?? ""),
+				occurredAt: Number.isNaN(occurredAt.getTime()) ? new Date() : occurredAt,
+				contactId: contact.id,
+				createdById: SYSTEM_USER_ID,
+			},
+		});
+
+		this.logger.log({ message: "Ingest event recorded", contactId: contact.id, kind });
+		return { ok: true, contactId: contact.id };
 	}
 }
