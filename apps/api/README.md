@@ -84,3 +84,5 @@ with an explicit TTL, invalidate on change.
   `secondaryStorage` backed by Redis would remove that dependency.
 - Environment variables are validated at boot by `src/config/env.validation.ts`.
   The process refuses to start on a bad config.
+
+<!-- Deployed on Vercel via scripts/build-func.mjs (Build Output API); framework preset must stay None. -->
