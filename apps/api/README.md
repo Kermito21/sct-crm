@@ -86,3 +86,4 @@ with an explicit TTL, invalidate on change.
   The process refuses to start on a bad config.
 
 <!-- Deployed on Vercel via scripts/build-func.mjs (Build Output API); framework preset must stay None. -->
+<!-- Root Directory on the sct-crm-api Vercel project must be the repo root. -->
