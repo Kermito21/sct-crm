@@ -150,7 +150,9 @@ writeFileSync(
 		maxDuration: 60,
 		memory: 1769,
 		environment: { NODE_ENV: "production" },
-		regions: ["iad1"],
+		// Colocate with the database (Supabase us-west-2); this overrides the
+		// project's serverlessFunctionRegion, so it must be set here.
+		regions: ["pdx1"],
 	}),
 );
 writeFileSync(
