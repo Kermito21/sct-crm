@@ -17,6 +17,7 @@ import { DealsModule } from "./deals/deals.module";
 import { GoogleModule } from "./google/google.module";
 import { HealthModule } from "./health/health.module";
 import { IngestModule } from "./ingest/ingest.module";
+import { JournalModule } from "./journal/journal.module";
 import { LoggingModule } from "./logging/logging.module";
 import { logAuthRoute } from "./logging/request-logger.middleware";
 import { SearchModule } from "./search/search.module";
@@ -41,6 +42,7 @@ import { WorkspaceModule } from "./workspace/workspace.module";
 		AuthModule,
 		HealthModule,
 		IngestModule,
+		JournalModule,
 		TrpcModule,
 		UsersModule,
 		CompaniesModule,

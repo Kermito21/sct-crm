@@ -90,6 +90,14 @@ export class EnvironmentVariables {
 	BLOB_READ_WRITE_TOKEN?: string;
 
 	@IsOptional()
+	@IsString()
+	JOURNAL_URL?: string;
+
+	@IsOptional()
+	@IsString()
+	JOURNAL_ADMIN_TOKEN?: string;
+
+	@IsOptional()
 	@IsUrl(
 		{ require_tld: false, require_protocol: true },
 		{
