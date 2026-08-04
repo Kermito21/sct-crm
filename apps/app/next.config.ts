@@ -25,6 +25,12 @@ const nextConfig: NextConfig = {
 
 	experimental: {
 		viewTransition: true,
+		// Client router cache: revisiting a tab within 30s renders instantly
+		// from the cached payload instead of a fresh SSR round trip.
+		staleTimes: {
+			dynamic: 30,
+			static: 300,
+		},
 	},
 };
 

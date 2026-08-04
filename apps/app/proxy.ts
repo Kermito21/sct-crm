@@ -9,6 +9,8 @@ import {
 
 const SIGN_IN_PATH = "/sign-in";
 
+const GATE_COOKIE = "crm-gate";
+
 const UNGATED = [SIGN_IN_PATH, "/grant-access", "/eve"];
 
 export async function proxy(request: NextRequest) {
@@ -24,6 +26,15 @@ export async function proxy(request: NextRequest) {
 
 	if (isUngated(pathname)) return NextResponse.next();
 
+	// Onboarding can never un-complete, so once a browser has seen it settled
+	// we remember that in a cookie and skip the per-navigation API round trip
+	// the gate check costs (edge → API → DB on every click).
+	if (request.cookies.get(GATE_COOKIE)?.value === "settled") {
+		return isSetup(pathname)
+			? NextResponse.redirect(new URL("/", request.nextUrl))
+			: NextResponse.next();
+	}
+
 	const onboarding = await readOnboardingGate(request);
 
 	if (onboarding === "required") return sendTo(ONBOARDING_PATH, request);
@@ -34,9 +45,22 @@ export async function proxy(request: NextRequest) {
 
 	const settled = onboarding === "settled";
 
-	return settled && isSetup(pathname)
-		? NextResponse.redirect(new URL("/", request.nextUrl))
-		: NextResponse.next();
+	const response =
+		settled && isSetup(pathname)
+			? NextResponse.redirect(new URL("/", request.nextUrl))
+			: NextResponse.next();
+
+	if (settled) {
+		response.cookies.set(GATE_COOKIE, "settled", {
+			httpOnly: true,
+			secure: true,
+			sameSite: "lax",
+			path: "/",
+			maxAge: 60 * 60 * 24 * 30,
+		});
+	}
+
+	return response;
 }
 
 function isUngated(pathname: string): boolean {
