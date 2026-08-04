@@ -21,6 +21,7 @@
 	 * a secret in the cache metadata.
 	 */
 	"globalPassThroughEnv": [
+		"CRM_INGEST_SECRET",
 		"DATABASE_URL",
 		"DATABASE_URL_UNPOOLED",
 		"BETTER_AUTH_SECRET",
