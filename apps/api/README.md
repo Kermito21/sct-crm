@@ -87,3 +87,5 @@ with an explicit TTL, invalidate on change.
 
 <!-- Deployed on Vercel via scripts/build-func.mjs (Build Output API); framework preset must stay None. -->
 <!-- Root Directory on the sct-crm-api Vercel project must be the repo root. -->
+
+<!-- Functions run in pdx1, colocated with the Supabase pooler in us-west-2. -->
