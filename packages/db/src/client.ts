@@ -11,6 +11,13 @@ if (!connectionString) {
 	);
 }
 
+// `?schema=` is a Prisma-classic URL convention that the pg driver adapter
+// does not read — without forwarding it, every query targets `public` even
+// though `prisma migrate` (which does honour the param) applied the tables
+// elsewhere. Deploys that share a database with other apps rely on this.
+const schema =
+	new URL(connectionString).searchParams.get("schema") ?? undefined;
+
 export interface PrismaLogRecord {
 	level: Prisma.LogLevel;
 	message: string;
@@ -54,7 +61,7 @@ const logDefinitions: Prisma.LogDefinition[] = [
 
 const createPrismaClient = () => {
 	const client = new PrismaClient({
-		adapter: new PrismaPg({ connectionString }),
+		adapter: new PrismaPg({ connectionString }, schema ? { schema } : undefined),
 		log: logDefinitions,
 	});
 
