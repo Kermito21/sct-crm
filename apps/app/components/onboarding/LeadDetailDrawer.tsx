@@ -24,7 +24,7 @@ type Status = "pending" | "contacted" | "approved" | "rejected";
 
 const STATUS_META: Record<Status, { label: string; bg: string; fg: string }> = {
   pending: { label: "Pending", bg: "rgba(99,102,241,0.15)", fg: "rgba(99,102,241,0.9)" },
-  contacted: { label: "Contacted", bg: "rgba(77,104,235,0.15)", fg: "#4c9eff" },
+  contacted: { label: "Contacted", bg: "color-mix(in srgb, var(--chart-2) 15%, transparent)", fg: "var(--chart-2)" },
   approved: { label: "Approved", bg: "rgba(34,197,94,0.15)", fg: "rgba(34,197,94,0.9)" },
   rejected: { label: "Rejected", bg: "rgba(239,68,68,0.15)", fg: "rgba(239,68,68,0.9)" },
 };
@@ -341,7 +341,7 @@ export default function LeadDetailDrawer({
                 <button
                   onClick={() => saveCall(false)}
                   disabled={savingCall || !callInput || toLocalInput(detail.callBookedAt) === callInput}
-                  className="rounded-lg px-3 py-2 text-xs font-semibold text-white bg-sct-cta disabled:opacity-40"
+                  className="rounded-lg px-3 py-2 text-xs font-semibold text-primary-foreground bg-sct-cta disabled:opacity-40"
                 >
                   {savingCall ? "..." : "Save"}
                 </button>
@@ -371,7 +371,7 @@ export default function LeadDetailDrawer({
                 <button
                   onClick={() => setReplyOpen(true)}
                   disabled={!detail.email}
-                  className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white bg-sct-cta hover:bg-sct-cta-hover disabled:opacity-40 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-primary-foreground bg-sct-cta hover:bg-sct-cta-hover disabled:opacity-40 transition-colors"
                 >
                   <Mail size={13} /> {detail.email ? "Compose reply" : "No email on file"}
                 </button>
@@ -397,7 +397,7 @@ export default function LeadDetailDrawer({
                     <button
                       onClick={sendReply}
                       disabled={sending || !replySubject.trim() || !replyBody.trim()}
-                      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white bg-sct-cta disabled:opacity-40"
+                      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-primary-foreground bg-sct-cta disabled:opacity-40"
                     >
                       {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                       {sending ? "Sending..." : "Send"}
@@ -472,7 +472,7 @@ export default function LeadDetailDrawer({
                 <button
                   onClick={saveNotes}
                   disabled={savingNotes || notesDraft === (detail.adminNotes ?? "")}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-sct-cta disabled:opacity-40"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-primary-foreground bg-sct-cta disabled:opacity-40"
                 >
                   {savingNotes ? "Saving..." : "Save notes"}
                 </button>

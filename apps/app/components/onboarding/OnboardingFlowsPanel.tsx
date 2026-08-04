@@ -114,26 +114,26 @@ interface OnboardingData {
 }
 
 // Brand-derived palette (tints of CTA blue + charcoal accent) — no off-brand hues.
-const DONUT_COLORS = ["#4c9eff", "#6b81ee", "#8a9bf1", "#a8b4f5", "#4c9eff", "#4c9eff", "#c9d2f7"];
+const DONUT_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-4)", "var(--chart-5)", "var(--chart-1)", "var(--chart-1)", "var(--chart-3)"];
 
 // Shared, theme-aware tooltip styling with explicit readable text colors
 // (the default item color inherits the series colour, which goes low-contrast
 // on the dark surface).
 const TOOLTIP_CONTENT = {
-  background: "var(--bg-surface)",
-  border: "1px solid var(--border-default)",
+  background: "var(--card)",
+  border: "1px solid var(--border)",
   borderRadius: 8,
   fontSize: 12,
-  color: "var(--text-heading)",
+  color: "var(--foreground)",
   boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
 } as const;
-const TOOLTIP_ITEM = { color: "var(--text-heading)" } as const;
-const TOOLTIP_LABEL = { color: "var(--text-body)", fontWeight: 600 } as const;
+const TOOLTIP_ITEM = { color: "var(--foreground)" } as const;
+const TOOLTIP_LABEL = { color: "var(--muted-foreground)", fontWeight: 600 } as const;
 
 function useTickColor() {
-  const [color, setColor] = useState("#535461");
+  const [color, setColor] = useState("var(--muted-foreground)");
   useEffect(() => {
-    const c = getComputedStyle(document.documentElement).getPropertyValue("--text-body").trim();
+    const c = getComputedStyle(document.documentElement).getPropertyValue("--muted-foreground").trim();
     if (c) setColor(c);
   }, []);
   return color;
@@ -289,7 +289,7 @@ export default function OnboardingFlowsPanel() {
                 onClick={() => setChannel(c)}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-                  channel === c ? "bg-sct-cta text-white" : "text-sct-body hover:bg-sct-surface/50"
+                  channel === c ? "bg-sct-cta text-primary-foreground" : "text-sct-body hover:bg-sct-surface/50"
                 )}
               >
                 {c === "organic" ? <Sprout size={14} /> : <Megaphone size={14} />}
@@ -304,7 +304,7 @@ export default function OnboardingFlowsPanel() {
                 onClick={() => setProduct(p)}
                 className={cn(
                   "rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-                  product === p ? "bg-sct-accent text-white" : "text-sct-body hover:bg-sct-surface/50"
+                  product === p ? "bg-sct-accent text-primary-foreground" : "text-sct-body hover:bg-sct-surface/50"
                 )}
               >
                 {p === "all" ? "All" : PRODUCT_LABEL[p]}
@@ -394,7 +394,7 @@ export default function OnboardingFlowsPanel() {
                     onClick={() => setTrendRange(r)}
                     className={cn(
                       "rounded-md px-2.5 py-1 text-xs font-semibold transition-colors",
-                      trendRange === r ? "bg-sct-cta text-white" : "text-sct-body hover:bg-sct-surface/50"
+                      trendRange === r ? "bg-sct-cta text-primary-foreground" : "text-sct-body hover:bg-sct-surface/50"
                     )}
                   >
                     {r}D
@@ -423,7 +423,7 @@ export default function OnboardingFlowsPanel() {
                     itemStyle={TOOLTIP_ITEM}
                     labelStyle={TOOLTIP_LABEL}
                   />
-                  <Bar dataKey="count" name="Leads" fill="#4c9eff" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+                  <Bar dataKey="count" name="Leads" fill="var(--chart-2)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -531,7 +531,7 @@ export default function OnboardingFlowsPanel() {
                             style={
                               l.isLost
                                 ? { background: "rgba(239,68,68,0.1)", color: "rgba(239,68,68,0.9)" }
-                                : { background: "rgba(77,104,235,0.1)", color: "#4c9eff" }
+                                : { background: "color-mix(in srgb, var(--chart-2) 12%, transparent)", color: "var(--chart-2)" }
                             }
                           >
                             {l.isLost ? "Lost" : l.stageLabel}
@@ -622,7 +622,7 @@ function StatCard({
         <div className="mt-2 -mx-0.5 h-9">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={sparkBars} margin={{ top: 2, right: 0, left: 0, bottom: 0 }} barCategoryGap={1}>
-              <Bar dataKey="count" fill="#4c9eff" radius={[2, 2, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="count" fill="var(--chart-2)" radius={[2, 2, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -644,7 +644,7 @@ function StatCard({
 
 function ConversionGauge({ value, active, total }: { value: number; active: number; total: number }) {
   const animated = useCountUp(value * 100);
-  const gauge = [{ name: "conversion", value: Math.min(value * 100, 100), fill: "#4c9eff" }];
+  const gauge = [{ name: "conversion", value: Math.min(value * 100, 100), fill: "var(--chart-2)" }];
   return (
     <div className="sct-card rounded-xl p-5">
       <h3 className="text-base font-bold uppercase tracking-wide text-sct-heading mb-2">Conversion</h3>
@@ -652,7 +652,7 @@ function ConversionGauge({ value, active, total }: { value: number; active: numb
         <ResponsiveContainer width="100%" height={170}>
           <RadialBarChart innerRadius="72%" outerRadius="100%" data={gauge} startAngle={90} endAngle={-270}>
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-            <RadialBar background={{ fill: "var(--bg-surface)" }} dataKey="value" cornerRadius={12} />
+            <RadialBar background={{ fill: "var(--card)" }} dataKey="value" cornerRadius={12} />
           </RadialBarChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -807,8 +807,8 @@ function SankeyFunnel({ funnel }: { funnel: FunnelSummary }) {
         <svg viewBox={`0 0 ${VB_W} ${VB_H}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#4c9eff" stopOpacity="0.9" />
-              <stop offset="100%" stopColor="#4c9eff" stopOpacity="0.28" />
+              <stop offset="0%" stopColor="var(--chart-2)" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="var(--chart-2)" stopOpacity="0.28" />
             </linearGradient>
           </defs>
           <path d={path} fill={`url(#${gid})`} />
@@ -1000,7 +1000,7 @@ function StuckLeads({
                 style={
                   urgent
                     ? { background: "rgba(239,68,68,0.12)", color: "rgba(239,68,68,0.9)" }
-                    : { background: "rgba(234,179,8,0.14)", color: "#a16207" }
+                    : { background: "rgba(234,179,8,0.14)", color: "var(--chart-3)" }
                 }
               >
                 {r.daysIdle}d idle
@@ -1045,7 +1045,7 @@ function Heatmap({
                     title={`${day} ${buckets[c]} — ${v} lead${v === 1 ? "" : "s"}`}
                     className="flex-1 h-7 rounded-[3px] transition-colors"
                     style={{
-                      background: v === 0 ? "var(--bg-surface)" : `rgba(77,104,235,${0.18 + intensity * 0.82})`,
+                      background: v === 0 ? "var(--card)" : `color-mix(in srgb, var(--chart-2) ${Math.round((0.18 + intensity * 0.82) * 100)}%, transparent)`,
                     }}
                   />
                 );
@@ -1058,7 +1058,7 @@ function Heatmap({
       <div className="flex items-center justify-end gap-2 mt-3 text-[10px] text-sct-body">
         <span>Fewer</span>
         {[0.18, 0.4, 0.6, 0.8, 1].map((o) => (
-          <span key={o} className="h-2.5 w-2.5 rounded-[2px]" style={{ background: `rgba(77,104,235,${o})` }} />
+          <span key={o} className="h-2.5 w-2.5 rounded-[2px]" style={{ background: `color-mix(in srgb, var(--chart-2) ${Math.round(o * 100)}%, transparent)` }} />
         ))}
         <span>More</span>
       </div>

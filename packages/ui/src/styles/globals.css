@@ -886,32 +886,23 @@
 	}
 }
 
-@theme {
-	--color-sct-bg: #fbfcfd;
-	--color-sct-surface: #fcfcfa;
-	--color-sct-accent: #383a45;
-	--color-sct-heading: #171721;
-	--color-sct-body: #535461;
-	--color-sct-cta: #4d68eb;
-	--color-sct-cta-hover: #3b53d1;
+@theme inline {
+	--color-sct-bg: var(--background);
+	--color-sct-surface: var(--muted);
+	--color-sct-accent: var(--accent);
+	--color-sct-heading: var(--foreground);
+	--color-sct-body: var(--muted-foreground);
+	--color-sct-cta: var(--primary);
+	--color-sct-cta-hover: var(--primary);
 }
 
 .sct-card {
-	background: linear-gradient(135deg, #fcfcfa 0%, #fcfcfa 100%);
-	border: 1px solid rgba(217, 215, 207, 0.7);
-	box-shadow:
-		0 1px 3px rgba(56, 58, 69, 0.04),
-		0 1px 2px rgba(56, 58, 69, 0.02);
-	border-radius: 12px;
-	color: #535461;
-	transition:
-		box-shadow 0.2s ease,
-		border-color 0.2s ease,
-		background 0.2s ease;
+	background: var(--card);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-lg);
+	color: var(--muted-foreground);
+	transition: border-color 0.2s ease;
 }
 .sct-card:hover {
-	box-shadow:
-		0 4px 12px rgba(56, 58, 69, 0.06),
-		0 1px 3px rgba(56, 58, 69, 0.04);
-	border-color: rgba(79, 79, 95, 0.18);
+	border-color: var(--ring);
 }
