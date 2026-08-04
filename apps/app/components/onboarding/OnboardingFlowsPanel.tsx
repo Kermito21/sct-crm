@@ -267,7 +267,7 @@ export default function OnboardingFlowsPanel() {
   const trendTotal = useMemo(() => trendSeries.reduce((a, d) => a + d.count, 0), [trendSeries]);
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10 pb-12">
+    <div className="mx-auto max-w-[1800px] px-3 sm:px-4 lg:px-6 pb-12">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-sct-heading">Onboarding Flows</h1>
         <p className="text-sm text-sct-body mt-1 max-w-3xl">
