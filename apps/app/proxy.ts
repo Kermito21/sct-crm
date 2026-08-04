@@ -5,7 +5,6 @@ import {
 	ONBOARDING_PATH,
 	RESEARCH_PATH,
 	readOnboardingGate,
-	readResearchGate,
 } from "@/lib/onboarding";
 
 const SIGN_IN_PATH = "/sign-in";
@@ -25,17 +24,15 @@ export async function proxy(request: NextRequest) {
 
 	if (isUngated(pathname)) return NextResponse.next();
 
-	// Both answers, every time, and concurrently — so the gate costs one round
-	// trip rather than two, and neither answer can be stale.
-	const [onboarding, research] = await Promise.all([
-		readOnboardingGate(request),
-		readResearchGate(request),
-	]);
+	const onboarding = await readOnboardingGate(request);
 
 	if (onboarding === "required") return sendTo(ONBOARDING_PATH, request);
-	if (research === "required") return sendTo(RESEARCH_PATH, request);
+	// The Context key is optional for this install: never gate sign-in on it.
+	// It can be added any time in Settings → General; until then the agent
+	// simply runs without brand data. (Upstream hard-gates here, which locks
+	// every user out of the dashboard when no key exists.)
 
-	const settled = onboarding === "settled" && research === "settled";
+	const settled = onboarding === "settled";
 
 	return settled && isSetup(pathname)
 		? NextResponse.redirect(new URL("/", request.nextUrl))
