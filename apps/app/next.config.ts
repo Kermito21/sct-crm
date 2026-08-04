@@ -15,6 +15,16 @@ const nextConfig: NextConfig = {
 
 	transpilePackages: ["@crm/auth", "@crm/db", "@crm/ui"],
 
+	async redirects() {
+		return [
+			{
+				source: "/admin/:path*",
+				destination: "/onboarding-flows",
+				permanent: false,
+			},
+		];
+	},
+
 	serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg", "pg"],
 
 	images: {
