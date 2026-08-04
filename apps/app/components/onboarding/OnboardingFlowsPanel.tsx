@@ -10,7 +10,6 @@
 // Data: GET /api/journal/admin/onboarding. Styling: SCT cool-white theme. All motion
 // is CSS / requestAnimationFrame — no framer-motion (kept off Android).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   BarChart,
   Bar,
@@ -194,7 +193,6 @@ function buildDailySeries(trend: { date: string; count: number }[], days: number
 }
 
 export default function OnboardingFlowsPanel() {
-  const router = useRouter();
   const tickColor = useTickColor();
   const channel: Channel = "organic";
   const [product, setProduct] = useState<ProductFilter>("all");
@@ -214,8 +212,7 @@ export default function OnboardingFlowsPanel() {
     try {
       const res = await fetch(`/api/journal/admin/onboarding?channel=${channel}&product=${product}`);
       if (res.status === 401) {
-        router.push("/admin/login");
-        return;
+        throw new Error("The journal hasn't authorized the CRM connection yet — data appears once the journal-side service token is deployed.");
       }
       if (!res.ok) throw new Error(`Load failed (${res.status})`);
       setData(await res.json());
@@ -224,7 +221,7 @@ export default function OnboardingFlowsPanel() {
     } finally {
       setLoading(false);
     }
-  }, [channel, product, router]);
+  }, [channel, product]);
 
   useEffect(() => {
     void reload();
@@ -267,7 +264,7 @@ export default function OnboardingFlowsPanel() {
   const trendTotal = useMemo(() => trendSeries.reduce((a, d) => a + d.count, 0), [trendSeries]);
 
   return (
-    <div className="mx-auto max-w-[1800px] px-3 sm:px-4 lg:px-6 pb-12">
+    <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 pt-6 pb-12">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-sct-heading">Onboarding Flows</h1>
         <p className="text-sm text-sct-body mt-1 max-w-3xl">
@@ -340,9 +337,15 @@ export default function OnboardingFlowsPanel() {
           {/* Funnels (wide) + gauge & donut (rail) */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
             <div className="lg:col-span-2 space-y-5">
-              {(data?.funnels ?? []).map((f) => (
-                <SankeyFunnel key={f.product} funnel={f} />
-              ))}
+              {(data?.funnels?.length ?? 0) === 0 ? (
+                <div className="sct-card rounded-xl p-5 h-full min-h-[300px] flex items-center justify-center">
+                  <p className="text-sm text-sct-body">Funnel charts appear here once leads start flowing.</p>
+                </div>
+              ) : (
+                (data?.funnels ?? []).map((f) => (
+                  <SankeyFunnel key={f.product} funnel={f} />
+                ))
+              )}
             </div>
             <div className="space-y-5">
               <ConversionGauge value={data?.cards.conversionPct ?? 0} active={data?.cards.active ?? 0} total={data?.cards.totalLeads ?? 0} />
@@ -623,7 +626,7 @@ function ConversionGauge({ value, active, total }: { value: number; active: numb
         <ResponsiveContainer width="100%" height={170}>
           <RadialBarChart innerRadius="72%" outerRadius="100%" data={gauge} startAngle={90} endAngle={-270}>
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-            <RadialBar background={{ fill: "var(--card)" }} dataKey="value" cornerRadius={12} />
+            <RadialBar background={{ fill: "color-mix(in srgb, var(--chart-2) 14%, transparent)" }} dataKey="value" cornerRadius={12} />
           </RadialBarChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">

@@ -4,5 +4,9 @@ import PipelinePanel from "@/components/onboarding/PipelinePanel";
 export const metadata: Metadata = { title: "Pipeline" };
 
 export default function PipelinePage() {
-	return <PipelinePanel />;
+	return (
+		<main className="min-w-0 flex-1 overflow-y-auto">
+			<PipelinePanel />
+		</main>
+	);
 }

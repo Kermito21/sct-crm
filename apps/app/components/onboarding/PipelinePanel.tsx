@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { RefreshCw, Crown, FileText, Loader2, ArrowRight } from "lucide-react";
 import { cn } from "@crm/ui/lib/utils";
 import { type OnboardingStatus } from "./types";
@@ -48,7 +47,6 @@ interface PipelineUser {
 const STAGES: OnboardingStatus[] = ["invited", "password_set", "intake_completed", "active"];
 
 export default function PipelinePanel() {
-  const router = useRouter();
   const [byStage, setByStage] = useState<Record<OnboardingStatus, PipelineUser[]>>({
     invited: [],
     password_set: [],
@@ -62,24 +60,31 @@ export default function PipelinePanel() {
     active: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tierFilter, setTierFilter] = useState<string>("all");
   const [vipOnly, setVipOnly] = useState(false);
   const [advancingId, setAdvancingId] = useState<string | null>(null);
 
   const fetchPipeline = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/journal/admin/pipeline");
-      if (res.status === 401) { router.push("/admin/login"); return; }
+      if (res.status === 401) {
+        setError("The journal hasn't authorized the CRM connection yet — data appears once the journal-side service token is deployed.");
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setByStage(data.byStage);
         setCounts(data.counts);
+      } else {
+        setError(`Load failed (${res.status})`);
       }
     } finally {
       setLoading(false);
     }
-  }, [router]);
+  }, []);
 
   useEffect(() => { fetchPipeline(); }, [fetchPipeline]);
 
@@ -113,7 +118,23 @@ export default function PipelinePanel() {
   const totalFiltered = STAGES.reduce((sum, s) => sum + filterUsers(byStage[s]).length, 0);
 
   return (
-    <div className="mx-auto px-3 sm:px-4 lg:px-6 pb-6">
+    <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 pt-6 pb-12">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-sct-heading">Pipeline</h1>
+        <p className="text-sm text-sct-body mt-1 max-w-3xl">
+          Move each client through onboarding, from first invite to fully active.
+        </p>
+      </div>
+
+      {error && (
+        <div
+          className="mb-4 text-xs px-3 py-2 rounded"
+          style={{ color: "rgba(239,68,68,0.9)", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}
+        >
+          {error}
+        </div>
+      )}
+
       {/* Stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {STAGES.map(stage => (
