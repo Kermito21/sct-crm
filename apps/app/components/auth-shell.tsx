@@ -34,7 +34,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 						rel="noreferrer"
 						className="underline underline-offset-4 hover:text-foreground"
 					>
-						Comp AI
+						SCT
 					</a>
 				</p>
 			</section>
