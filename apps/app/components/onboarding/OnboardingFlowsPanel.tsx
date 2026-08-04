@@ -33,8 +33,6 @@ import {
   BadgeCheck,
   Activity,
   TrendingUp,
-  Megaphone,
-  Sprout,
   Search,
   StickyNote,
   CalendarClock,
@@ -198,7 +196,7 @@ function buildDailySeries(trend: { date: string; count: number }[], days: number
 export default function OnboardingFlowsPanel() {
   const router = useRouter();
   const tickColor = useTickColor();
-  const [channel, setChannel] = useState<Channel>("organic");
+  const channel: Channel = "organic";
   const [product, setProduct] = useState<ProductFilter>("all");
   const [data, setData] = useState<OnboardingData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -264,7 +262,6 @@ export default function OnboardingFlowsPanel() {
     });
   }, [data, search, stageFilter]);
 
-  const isEmptyScaled = channel === "scaled" && (data?.cards.totalLeads ?? 0) === 0;
   const daily90 = useMemo(() => buildDailySeries(data?.trend ?? [], 90), [data]);
   const trendSeries = useMemo(() => daily90.slice(-trendRange), [daily90, trendRange]);
   const trendTotal = useMemo(() => trendSeries.reduce((a, d) => a + d.count, 0), [trendSeries]);
@@ -275,28 +272,13 @@ export default function OnboardingFlowsPanel() {
         <h1 className="text-2xl font-semibold text-sct-heading">Onboarding Flows</h1>
         <p className="text-sm text-sct-body mt-1 max-w-3xl">
           Track every applicant from first form submission to fully-onboarded client, and review each
-          lead in place. Switch channels to keep organic leads separate from marketing-partner (Scaled) leads.
+          lead in place.
         </p>
       </div>
 
       {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-sct-surface p-1 bg-sct-bg">
-            {(["organic", "scaled"] as Channel[]).map((c) => (
-              <button
-                key={c}
-                onClick={() => setChannel(c)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold transition-colors",
-                  channel === c ? "bg-sct-cta text-primary-foreground" : "text-sct-body hover:bg-sct-surface/50"
-                )}
-              >
-                {c === "organic" ? <Sprout size={14} /> : <Megaphone size={14} />}
-                {c === "organic" ? "Organic" : "Scaled"}
-              </button>
-            ))}
-          </div>
           <div className="inline-flex rounded-lg border border-sct-surface p-1 bg-sct-bg">
             {(["all", "unlimited", "flex"] as ProductFilter[]).map((p) => (
               <button
@@ -330,17 +312,7 @@ export default function OnboardingFlowsPanel() {
         </div>
       )}
 
-      {isEmptyScaled ? (
-        <div className="sct-card rounded-xl p-12 text-center">
-          <Megaphone className="h-10 w-10 text-sct-body/40 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-sct-heading">Scaled channel — no data yet</h3>
-          <p className="text-sm text-sct-body mt-1 max-w-md mx-auto">
-            This view lights up once the Scaled partner&apos;s VSL intake starts sending leads. The same
-            funnel will track their numbers here so they can be verified against what&apos;s reported.
-          </p>
-        </div>
-      ) : (
-        <>
+      <>
           {/* KPI strip — recent activity at a glance */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <KpiPill label="Leads today" value={data?.kpis.leadsToday ?? 0} />
@@ -566,8 +538,7 @@ export default function OnboardingFlowsPanel() {
               </div>
             )}
           </div>
-        </>
-      )}
+      </>
 
       <LeadDetailDrawer leadId={openLeadId} onClose={() => setOpenLeadId(null)} onChanged={reload} />
     </div>
