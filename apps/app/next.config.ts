@@ -30,6 +30,6 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-// Cache-bust 2026-08-04: first Vercel build ran before API_URL existed and its
-// inlined localhost fallback survived through cached rebuilds; config change
-// forces a clean compile.
+// Deploy note: set NEXT_PUBLIC_API_URL on the Vercel project (not just
+// API_URL) - the app's turbo build task only admits the NEXT_PUBLIC_ name,
+// so API_URL alone bakes the localhost fallback into the bundle.
