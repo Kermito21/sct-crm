@@ -2,10 +2,13 @@ import { type Db, DealStage } from "@crm/db";
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	Headers,
 	HttpCode,
 	Logger,
+	NotFoundException,
+	Param,
 	Post,
 	Query,
 	ServiceUnavailableException,
@@ -468,5 +471,84 @@ export class IngestController {
 				dueAt: task.dueAt?.toISOString() ?? null,
 			})),
 		};
+	}
+
+	/**
+	 * Delete a deal and everything hanging off it.
+	 *
+	 * Machine writes create machine mistakes: a verification probe against
+	 * /ingest/sale left three junk CLOSED WON deals in the pipeline and there
+	 * was no way to remove them without a human in the app. Anything that can
+	 * be created by a secret-guarded endpoint has to be removable by one.
+	 *
+	 * Activities and DealContact rows cascade from the schema. The contact and
+	 * company are deliberately left alone: a bad deal does not mean a bad
+	 * person, and orphaning a real lead is worse than leaving a tidy record.
+	 */
+	@Delete("deal/:id")
+	@HttpCode(200)
+	@AllowAnonymous()
+	async deleteDeal(
+		@Headers("x-ingest-secret") secret: string | undefined,
+		@Param("id") id: string,
+	) {
+		const expected = process.env.CRM_INGEST_SECRET ?? "";
+		if (!expected)
+			throw new ServiceUnavailableException("Ingest not configured");
+		if (secret !== expected) throw new UnauthorizedException();
+
+		const deal = await this.db.deal.findUnique({
+			where: { id },
+			select: { id: true, name: true, amount: true, stage: true },
+		});
+		if (!deal) throw new NotFoundException("No deal with that id");
+
+		await this.db.deal.delete({ where: { id } });
+
+		this.logger.warn({
+			message: "Ingest deal deleted",
+			dealId: id,
+			name: deal.name,
+		});
+		return {
+			ok: true,
+			deleted: { id: deal.id, name: deal.name, stage: deal.stage },
+		};
+	}
+
+	/**
+	 * Deals matching an exact name, so a caller can find what it wrongly
+	 * created without guessing ids. Read-only on purpose: the mistake that
+	 * made this necessary was using a write endpoint to answer a question.
+	 */
+	@Get("deals/by-name")
+	@AllowAnonymous()
+	async dealsByName(
+		@Headers("x-ingest-secret") secret: string | undefined,
+		@Query("name") name?: string,
+	) {
+		const expected = process.env.CRM_INGEST_SECRET ?? "";
+		if (!expected)
+			throw new ServiceUnavailableException("Ingest not configured");
+		if (secret !== expected) throw new UnauthorizedException();
+		if (!name?.trim()) return { ok: false, error: "name required" };
+
+		const deals = await this.db.deal.findMany({
+			where: { name: { equals: name.trim(), mode: "insensitive" } },
+			orderBy: { createdAt: "desc" },
+			take: 50,
+			select: {
+				id: true,
+				name: true,
+				amount: true,
+				stage: true,
+				closedAt: true,
+				createdAt: true,
+				company: { select: { name: true } },
+				contacts: { select: { contact: { select: { email: true } } } },
+			},
+		});
+
+		return { ok: true, count: deals.length, deals };
 	}
 }
