@@ -28,6 +28,122 @@ function monthKey(date: Date): number {
 	return date.getFullYear() * 12 + date.getMonth();
 }
 
+function dayStart(date: Date): Date {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/** Monday-first start of the week containing `date`. */
+function weekStart(date: Date): Date {
+	const start = dayStart(date);
+	start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+	return start;
+}
+
+function addDays(date: Date, days: number): Date {
+	const next = new Date(date);
+	next.setDate(next.getDate() + days);
+	return next;
+}
+
+function parseDay(value: string | undefined): Date | null {
+	if (!value) return null;
+	const parsed = new Date(`${value}T00:00:00`);
+	return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+interface ResolvedRange {
+	start: Date;
+	end: Date;
+	prevStart: Date;
+	prevEnd: Date;
+}
+
+/**
+ * [start, end) for the requested range plus the equal-footing comparison
+ * period right before it. Calendar presets compare against the previous
+ * calendar unit; custom ranges against the same number of days immediately
+ * prior. A custom range with missing or inverted bounds falls back to
+ * this_month rather than erroring, so a half-filled picker still renders.
+ */
+function resolveRange(input: DashboardSummaryInput, now: Date): ResolvedRange {
+	switch (input.range) {
+		case "today": {
+			const start = dayStart(now);
+			return {
+				start,
+				end: addDays(start, 1),
+				prevStart: addDays(start, -1),
+				prevEnd: start,
+			};
+		}
+		case "this_week": {
+			const start = weekStart(now);
+			return {
+				start,
+				end: addDays(start, 7),
+				prevStart: addDays(start, -7),
+				prevEnd: start,
+			};
+		}
+		case "last_week": {
+			const end = weekStart(now);
+			const start = addDays(end, -7);
+			return { start, end, prevStart: addDays(start, -7), prevEnd: start };
+		}
+		case "last_month": {
+			const start = monthStart(now, -1);
+			return {
+				start,
+				end: monthStart(now, 0),
+				prevStart: monthStart(now, -2),
+				prevEnd: start,
+			};
+		}
+		case "last_3_months": {
+			const start = monthStart(now, -2);
+			return {
+				start,
+				end: monthStart(now, 1),
+				prevStart: monthStart(now, -5),
+				prevEnd: start,
+			};
+		}
+		case "this_year": {
+			const start = new Date(now.getFullYear(), 0, 1);
+			return {
+				start,
+				end: new Date(now.getFullYear() + 1, 0, 1),
+				prevStart: new Date(now.getFullYear() - 1, 0, 1),
+				prevEnd: start,
+			};
+		}
+		case "custom": {
+			const from = parseDay(input.from);
+			const to = parseDay(input.to);
+			if (from && to && from <= to) {
+				const end = addDays(to, 1);
+				const length = end.getTime() - from.getTime();
+				return {
+					start: from,
+					end,
+					prevStart: new Date(from.getTime() - length),
+					prevEnd: from,
+				};
+			}
+			break;
+		}
+		default:
+			break;
+	}
+	const start = monthStart(now, 0);
+	return {
+		start,
+		end: monthStart(now, 1),
+		prevStart: monthStart(now, -1),
+		prevEnd: start,
+	};
+}
+
 @Injectable()
 export class DashboardService {
 	constructor(@InjectDatabase() private readonly db: Db) {}
@@ -37,16 +153,23 @@ export class DashboardService {
 		const owned = mine ? { ownerId: actingUserId } : {};
 
 		const now = new Date();
-		const startOfMonth = monthStart(now, 0);
-		const startOfNextMonth = monthStart(now, 1);
-		const startOfPrevMonth = monthStart(now, -1);
+		const range = resolveRange(input, now);
 		const trendStart = monthStart(now, -(TREND_MONTHS - 1));
 		const rateStart = new Date(now.getTime() - RATE_WINDOW_DAYS * DAY_MS);
+		// The deal fetch has to reach back far enough for the trend chart, the
+		// win-rate window, and the comparison period, whichever is oldest.
+		const fetchStart = new Date(
+			Math.min(
+				trendStart.getTime(),
+				range.prevStart.getTime(),
+				rateStart.getTime(),
+			),
+		);
 
 		const [
 			openByStage,
 			recentDeals,
-			closingThisMonthTotals,
+			closingInRangeTotals,
 			biggestOpen,
 			overdueTasks,
 			recentActivity,
@@ -61,8 +184,8 @@ export class DashboardService {
 				where: {
 					...owned,
 					OR: [
-						{ createdAt: { gte: trendStart } },
-						{ closedAt: { gte: trendStart } },
+						{ createdAt: { gte: fetchStart } },
+						{ closedAt: { gte: fetchStart } },
 					],
 				},
 				select: {
@@ -76,7 +199,7 @@ export class DashboardService {
 				where: {
 					...owned,
 					stage: { in: [...OPEN_DEAL_STAGES] },
-					expectedCloseDate: { gte: startOfMonth, lt: startOfNextMonth },
+					expectedCloseDate: { gte: range.start, lt: range.end },
 				},
 				_count: { _all: true },
 				_sum: { amount: true },
@@ -159,8 +282,8 @@ export class DashboardService {
 			created: 0,
 		}));
 
-		const wonThisMonth = { count: 0, valueCents: 0 };
-		const wonPrevMonth = { count: 0, valueCents: 0 };
+		const wonInRange = { count: 0, valueCents: 0 };
+		const wonPrevRange = { count: 0, valueCents: 0 };
 		let wins = 0;
 		let losses = 0;
 		let wonCents = 0;
@@ -180,12 +303,12 @@ export class DashboardService {
 				const closed = trend[monthKey(closedAt) - firstBucket];
 				if (closed) closed.won += cents;
 
-				if (closedAt >= startOfMonth && closedAt < startOfNextMonth) {
-					wonThisMonth.count += 1;
-					wonThisMonth.valueCents += cents;
-				} else if (closedAt >= startOfPrevMonth && closedAt < startOfMonth) {
-					wonPrevMonth.count += 1;
-					wonPrevMonth.valueCents += cents;
+				if (closedAt >= range.start && closedAt < range.end) {
+					wonInRange.count += 1;
+					wonInRange.valueCents += cents;
+				} else if (closedAt >= range.prevStart && closedAt < range.prevEnd) {
+					wonPrevRange.count += 1;
+					wonPrevRange.valueCents += cents;
 				}
 			}
 
@@ -203,13 +326,18 @@ export class DashboardService {
 
 		return {
 			scope: input.scope,
+			range: {
+				preset: input.range,
+				from: range.start.toISOString(),
+				to: range.end.toISOString(),
+			},
 			pipeline: {
 				stages,
 				totalCents: stages.reduce((total, s) => total + s.valueCents, 0),
 				totalDeals: stages.reduce((total, s) => total + s.count, 0),
 			},
-			wonThisMonth,
-			wonPrevMonth,
+			wonInRange,
+			wonPrevRange,
 			performance: {
 				windowDays: RATE_WINDOW_DAYS,
 				wins,
@@ -219,9 +347,9 @@ export class DashboardService {
 				avgCycleDays: wins === 0 ? null : Math.round(cycleDays / wins),
 			},
 			trend,
-			closingThisMonthTotal: {
-				count: closingThisMonthTotals._count._all,
-				valueCents: toCents(closingThisMonthTotals._sum.amount) ?? 0,
+			closingInRangeTotal: {
+				count: closingInRangeTotals._count._all,
+				valueCents: toCents(closingInRangeTotals._sum.amount) ?? 0,
 			},
 			biggestOpen: biggestOpen.map(
 				({ amount, expectedCloseDate, stageChangedAt, ...deal }) => ({

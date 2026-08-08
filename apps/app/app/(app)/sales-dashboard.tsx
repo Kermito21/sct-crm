@@ -16,10 +16,12 @@ import {
 	formatPercent,
 } from "@crm/ui/lib/format";
 import Link from "next/link";
+import { useQueryState } from "nuqs";
 import type { ReactNode } from "react";
 import { dealStageColor, dealStageLabel } from "@/components/crm/deal-stage";
 import { AreaTrend, DonutStat } from "@/components/dashboard-charts";
 import type { RouterOutputs } from "@/lib/trpc/types";
+import { overviewParsers, RANGE_LABELS } from "./overview-search-params";
 
 type Summary = RouterOutputs["dashboard"]["summary"];
 
@@ -45,12 +47,16 @@ function changeDelta(
 export function SalesDashboard({ summary }: { summary: Summary }) {
 	const {
 		pipeline,
-		wonThisMonth,
-		wonPrevMonth,
+		wonInRange,
+		wonPrevRange,
 		performance,
 		trend,
-		closingThisMonthTotal,
+		closingInRangeTotal,
 	} = summary;
+
+	const [range] = useQueryState("range", overviewParsers.range);
+	const rangeLabel =
+		range === "custom" ? "Selected period" : RANGE_LABELS[range];
 
 	const hasTrend = trend.some((point) => point.won > 0 || point.created > 0);
 
@@ -68,19 +74,19 @@ export function SalesDashboard({ summary }: { summary: Summary }) {
 		<div className="flex flex-col gap-6">
 			<StatGroup>
 				<StatCard
-					label="Closed won this month"
-					value={formatMoneyCompact(wonThisMonth.valueCents)}
+					label={`Closed won · ${rangeLabel.toLowerCase()}`}
+					value={formatMoneyCompact(wonInRange.valueCents)}
 					delta={changeDelta(
-						wonThisMonth.valueCents,
-						wonPrevMonth.valueCents,
-						"vs. last month",
+						wonInRange.valueCents,
+						wonPrevRange.valueCents,
+						"vs. previous period",
 					)}
-					description={`${formatCount(wonThisMonth.count, "deal")} · ${formatMoneyCompact(wonPrevMonth.valueCents)} last month`}
+					description={`${formatCount(wonInRange.count, "deal")} · ${formatMoneyCompact(wonPrevRange.valueCents)} previous period`}
 				/>
 				<StatCard
 					label="Open pipeline"
 					value={formatMoneyCompact(pipeline.totalCents)}
-					description={`${formatCount(pipeline.totalDeals, "deal")} in progress · ${formatMoneyCompact(closingThisMonthTotal.valueCents)} due this month`}
+					description={`${formatCount(pipeline.totalDeals, "deal")} in progress · ${formatMoneyCompact(closingInRangeTotal.valueCents)} due in period`}
 				/>
 				<StatCard
 					label={`Win rate (${performance.windowDays}d)`}

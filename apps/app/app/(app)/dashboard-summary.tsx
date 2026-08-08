@@ -55,9 +55,17 @@ export function DashboardSummary() {
 	const openRecord = useOpenRecord();
 
 	const [scope] = useQueryState("scope", overviewParsers.scope);
+	const [range] = useQueryState("range", overviewParsers.range);
+	const [from] = useQueryState("from", overviewParsers.from);
+	const [to] = useQueryState("to", overviewParsers.to);
 
 	const summaryQuery = useQuery({
-		...trpc.dashboard.summary.queryOptions({ scope }),
+		...trpc.dashboard.summary.queryOptions({
+			scope,
+			range,
+			from: from || undefined,
+			to: to || undefined,
+		}),
 		placeholderData: (previous) => previous,
 	});
 

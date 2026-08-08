@@ -11,6 +11,7 @@ import { HydrateClient } from "@/lib/trpc/hydrate";
 import { getServerQueryClient, getServerTrpc } from "@/lib/trpc/server";
 import { DashboardSummary } from "./dashboard-summary";
 import { OverviewGreeting } from "./overview-greeting";
+import { OverviewRangePicker } from "./overview-range";
 import { OverviewScopeToggle } from "./overview-scope";
 import { loadOverviewSearchParams } from "./overview-search-params";
 
@@ -21,14 +22,22 @@ export default async function OverviewPage({
 }) {
 	await requireSession();
 
-	const { scope } = await loadOverviewSearchParams(searchParams);
+	const { scope, range, from, to } =
+		await loadOverviewSearchParams(searchParams);
 
 	const trpc = getServerTrpc();
 	const queryClient = getServerQueryClient();
 
 	await Promise.all([
 		queryClient.prefetchQuery(trpc.users.me.queryOptions()),
-		queryClient.prefetchQuery(trpc.dashboard.summary.queryOptions({ scope })),
+		queryClient.prefetchQuery(
+			trpc.dashboard.summary.queryOptions({
+				scope,
+				range,
+				from: from || undefined,
+				to: to || undefined,
+			}),
+		),
 	]);
 
 	return (
@@ -40,6 +49,7 @@ export default async function OverviewPage({
 					</HydrateClient>
 				</PageShellHeading>
 				<PageShellActions>
+					<OverviewRangePicker />
 					<OverviewScopeToggle />
 				</PageShellActions>
 			</PageShellHeader>
